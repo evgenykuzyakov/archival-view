@@ -57,6 +57,10 @@ async function _initNear() {
     }
   );
 
+  _near.fetchArchivalBlock = async (blockHeight) => {
+    return _near.nearArchivalConnection.provider.block(blockHeight);
+  };
+
   _near.fetchBlockHash = async () => {
     const block = await nearConnection.connection.provider.block({
       finality: "final",
