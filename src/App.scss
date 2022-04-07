@@ -1,0 +1,17 @@
+@import "node_modules/bootstrap/scss/bootstrap";
+
+h1 {
+  text-align: center;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+a {
+  color: #333;
+
+  &:hover, &:active, &:focus, &:disabled {
+    color: #666;
+  }
+}
