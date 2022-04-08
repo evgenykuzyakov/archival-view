@@ -1,6 +1,6 @@
 {
-  "short_name": "Live Burrow Feed",
-  "name": "Live Burrow feed (NEAR)",
+  "short_name": "Burrow TVL",
+  "name": "Burrow TVL for the last week",
   "icons": [
     {
       "src": "favicon.png",

@@ -179,7 +179,7 @@ function App() {
 
   return (
     <div>
-      <h1>Archival View</h1>
+      <h1>Burrow TVL for the last week</h1>
       <div className="container">
         <div className="row">
           {progress && <h2>{progress}</h2>}
