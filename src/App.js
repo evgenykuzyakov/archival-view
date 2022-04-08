@@ -2,19 +2,48 @@ import "./App.scss";
 import "error-polyfill";
 import "bootstrap/dist/js/bootstrap.bundle";
 import { useEffect, useState } from "react";
-import { keysToCamel } from "./data/utils";
-import Big from "big.js";
+import "chartjs-adapter-moment";
+import { Line } from "react-chartjs-2";
 import { useNear } from "./data/near";
 import { PromisePool } from "@supercharge/promise-pool";
+import "chart.js/auto";
+import { computeValueForBlochHeight } from "./fetchers/burrowTvl";
+import palette from "google-palette";
 
-const ContractId = "contract.main.burrow.near";
-
+const NumSplits = 8;
 const OneDay = 24 * 60 * 60 * 1000;
 
 const startBlockTime = new Date(new Date().getTime() - OneDay * 7);
 const OptimisticMsPerBlock = 900;
 
-const numDataPoints = 24 * 7;
+const LineOptions = {
+  animation: false,
+  responsive: true,
+  scales: {
+    xAxis: {
+      type: "time",
+      time: {
+        minUnit: "hour",
+      },
+      ticks: {
+        major: {
+          enabled: true,
+        },
+      },
+    },
+    yAxis: {
+      min: 0,
+      ticks: {
+        beginAtZero: true,
+      },
+    },
+  },
+  plugins: {
+    colorschemes: {
+      scheme: "brewer.Paired12",
+    },
+  },
+};
 
 async function fetchNextAvailableBlock(near, blockHeight) {
   const limit = blockHeight + 5;
@@ -37,19 +66,14 @@ async function fetchNextAvailableBlock(near, blockHeight) {
 
 const blockTime = (block) => parseFloat(block.header.timestamp_nanosec) / 1e6;
 
-async function computeDataForBlochHeight(near, blockHeight) {
-  return near.archivalViewCall(blockHeight, ContractId, "get_num_accounts");
-}
-
 async function fetchDataPoint(near, blockHeight) {
   const block = await fetchNextAvailableBlock(near, blockHeight);
   const time = blockTime(block);
   blockHeight = block.header.height;
-  console.log(time, blockHeight);
   return {
     time,
     blockHeight,
-    data: await computeDataForBlochHeight(near, blockHeight),
+    value: await computeValueForBlochHeight(near, blockHeight),
   };
 }
 
@@ -75,7 +99,7 @@ async function findStartBlock(near, startBlockTime, currentBlock) {
   return await fetchNextAvailableBlock(near, blockHeightLeft);
 }
 
-async function fetchData(near, setProgress) {
+async function fetchData(near, setProgress, setData) {
   setProgress("Loading: current block height");
   const currentBlockHeight = await near.fetchBlockHeight();
   console.log("Current blockHeight", currentBlockHeight);
@@ -88,35 +112,57 @@ async function fetchData(near, setProgress) {
   );
   const startBlockHeight = startBlock.header.height;
   console.log("Start blockHeight", startBlockHeight);
-  const startTime = blockTime(startBlock);
-  const blockHeights = [];
-  setProgress("Loading: fetching data 0%");
-  for (let i = 0; i <= numDataPoints; ++i) {
-    blockHeights.push(
-      startBlockHeight +
-        Math.floor(
-          (i * (currentBlockHeight - startBlockHeight)) / numDataPoints
-        )
-    );
+  // const startTime = blockTime(startBlock);
+  setProgress("Loading: fetching initial data");
+
+  let blockHeights = [startBlockHeight, currentBlockHeight];
+  let allBlockHeights = [startBlockHeight, currentBlockHeight];
+  let data = [];
+  for (let i = 0; i < NumSplits; ++i) {
+    const { results, errors } = await PromisePool.withConcurrency(8)
+      .for(blockHeights)
+      .process(async (blockHeight) => fetchDataPoint(near, blockHeight));
+
+    if (errors.length > 0) {
+      console.log("Errors", errors);
+    }
+
+    data = [...data, ...results].sort((a, b) => a.blockHeight - b.blockHeight);
+    setData(data);
+    setProgress(`Iteration ${i + 1} / ${NumSplits}`);
+
+    // Splitting
+    const newBlockHeights = [];
+    for (let i = 0; i < allBlockHeights.length - 1; ++i) {
+      newBlockHeights.push((allBlockHeights[i] + allBlockHeights[i + 1]) >> 1);
+    }
+    allBlockHeights = [...allBlockHeights, ...newBlockHeights].sort();
+    blockHeights = newBlockHeights;
   }
-  let numDataPointsDone = 0;
-
-  const { results, errors } = await PromisePool.withConcurrency(8)
-    .for(blockHeights)
-    .process(async (blockHeight) => {
-      const dataPoint = fetchDataPoint(near, blockHeight);
-      numDataPointsDone++;
-      setProgress(
-        `Loading: fetching data ${(
-          (100 * numDataPointsDone) /
-          (numDataPoints + 1)
-        ).toFixed(1)}%`
-      );
-      return dataPoint;
-    });
-
-  return results.sort((a, b) => a.blockHeight - b.blockHeight);
 }
+
+const computeLineData = (data) => {
+  const val = data[0].value;
+  const keys = Object.keys(val);
+  const p = palette("tol", keys.length).map((hex) => "#" + hex);
+  console.log(p);
+  const datasets = keys.map((key, index) => {
+    const d = data.map(({ time, value }) => {
+      return {
+        x: new Date(time),
+        y: value[key],
+      };
+    });
+    return {
+      data: d,
+      label: key,
+      backgroundColor: p[index],
+    };
+  });
+  return {
+    datasets,
+  };
+};
 
 function App() {
   const [data, setData] = useState(null);
@@ -128,7 +174,7 @@ function App() {
       return;
     }
 
-    fetchData(near, setProgress).then(setData);
+    fetchData(near, setProgress, setData).then(() => setProgress(null));
   }, [near]);
 
   return (
@@ -136,10 +182,17 @@ function App() {
       <h1>Archival View</h1>
       <div className="container">
         <div className="row">
-          {data ? (
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-          ) : (
-            <div>{progress}</div>
+          {progress && <h2>{progress}</h2>}
+          {data && (
+            <div>
+              <div>
+                <Line data={computeLineData(data)} options={LineOptions} />
+              </div>
+              <h2>Raw data</h2>
+              <div>
+                <pre>{JSON.stringify(data, null, 2)}</pre>
+              </div>
+            </div>
           )}
         </div>
       </div>
