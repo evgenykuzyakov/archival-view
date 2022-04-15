@@ -6,24 +6,15 @@ Big.DP = 40;
 const BurrowContractId = "contract.main.burrow.near";
 const OracleContractId = "priceoracle.near";
 
-export async function computeValueForBlochHeight(near, blockHeight) {
+export async function computeValueForBlochHeight(viewCall) {
   const assets = keysToCamel(
-    await near.archivalViewCall(
-      blockHeight,
-      BurrowContractId,
-      "get_assets_paged"
-    )
+    await viewCall(BurrowContractId, "get_assets_paged")
   );
   const assetIds = assets.map(([assetId, asset]) => assetId);
   const prices = keysToCamel(
-    await near.archivalViewCall(
-      blockHeight,
-      OracleContractId,
-      "get_price_data",
-      {
-        asset_ids: assetIds,
-      }
-    )
+    await viewCall(OracleContractId, "get_price_data", {
+      asset_ids: assetIds,
+    })
   );
   const priceMul = prices.prices.reduce((acc, { assetId, price }) => {
     if (price) {

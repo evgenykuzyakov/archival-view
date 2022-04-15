@@ -10,8 +10,9 @@ import "chart.js/auto";
 import { computeValueForBlochHeight } from "./fetchers/burrowTvl";
 import palette from "google-palette";
 
-const NumSplits = 8;
+const NumSplits = 7;
 const OneDay = 24 * 60 * 60 * 1000;
+const CloseEnoughTimeDiff = 60 * 1000;
 
 const startBlockTime = new Date(new Date().getTime() - OneDay * 7);
 const OptimisticMsPerBlock = 900;
@@ -73,38 +74,61 @@ async function fetchDataPoint(near, blockHeight) {
   return {
     time,
     blockHeight,
-    value: await computeValueForBlochHeight(near, blockHeight),
+    value: await computeValueForBlochHeight((...args) =>
+      near.archivalViewCall(blockHeight, ...args)
+    ),
   };
 }
 
 async function findStartBlock(near, startBlockTime, currentBlock) {
-  const currentBlockTimestamp = blockTime(currentBlock);
-  const currentBlockHeight = currentBlock.header.height;
-  const timeDiff = currentBlockTimestamp - startBlockTime;
-  let blockHeightLeft = Math.max(
-    currentBlockHeight - 10000000,
-    currentBlockHeight - Math.ceil(timeDiff / OptimisticMsPerBlock)
+  let blockTimeRight = blockTime(currentBlock);
+  let blockHeightRight = currentBlock.header.height;
+  const leftBlock = await fetchNextAvailableBlock(
+    near,
+    Math.max(
+      blockHeightRight - 10000000,
+      blockHeightRight -
+        Math.ceil((blockTimeRight - startBlockTime) / OptimisticMsPerBlock)
+    )
   );
-  let blockHeightRight = currentBlockHeight;
-  while (blockHeightLeft + 1 < blockHeightRight) {
-    const blockHeight = (blockHeightLeft + blockHeightRight) >> 1;
+  let blockHeightLeft = leftBlock.header.height;
+  let blockTimeLeft = blockTime(leftBlock);
+  for (let i = 0; i < 5; ++i) {
+    const blockHeight =
+      blockHeightLeft +
+      Math.round(
+        ((blockHeightRight - blockHeightLeft) /
+          (blockTimeRight - blockTimeLeft)) *
+          (startBlockTime - blockTimeLeft)
+      );
     const block = await fetchNextAvailableBlock(near, blockHeight);
     const blockTimestamp = blockTime(block);
+    const blockProximity = Math.abs(startBlockTime - blockTimestamp);
+    console.log(
+      `Iter #${i}: Block time proximity ${(blockProximity / 1e3).toFixed(
+        2
+      )} sec`
+    );
+    if (blockProximity < CloseEnoughTimeDiff) {
+      return block;
+    }
     if (blockTimestamp > startBlockTime) {
       blockHeightRight = blockHeight;
+      blockTimeRight = blockTimestamp;
     } else {
       blockHeightLeft = blockHeight;
+      blockTimeLeft = blockTimestamp;
     }
   }
   return await fetchNextAvailableBlock(near, blockHeightLeft);
 }
 
 async function fetchData(near, setProgress, setData) {
-  setProgress("Loading: current block height");
+  setProgress("fetching current block");
   const currentBlockHeight = await near.fetchBlockHeight();
   console.log("Current blockHeight", currentBlockHeight);
   const currentBlock = await near.fetchArchivalBlock(currentBlockHeight);
-  setProgress("Loading: starting block");
+  setProgress("searching for the starting block");
   const startBlock = await findStartBlock(
     near,
     startBlockTime.getTime(),
@@ -113,7 +137,7 @@ async function fetchData(near, setProgress, setData) {
   const startBlockHeight = startBlock.header.height;
   console.log("Start blockHeight", startBlockHeight);
   // const startTime = blockTime(startBlock);
-  setProgress("Loading: fetching initial data");
+  setProgress("fetching initial data");
 
   let blockHeights = [startBlockHeight, currentBlockHeight];
   let allBlockHeights = [startBlockHeight, currentBlockHeight];
@@ -129,7 +153,7 @@ async function fetchData(near, setProgress, setData) {
 
     data = [...data, ...results].sort((a, b) => a.blockHeight - b.blockHeight);
     setData(data);
-    setProgress(`Iteration ${i + 1} / ${NumSplits}`);
+    setProgress(`increasing precision, iteration ${i + 1} / ${NumSplits}`);
 
     // Splitting
     const newBlockHeights = [];
@@ -145,7 +169,6 @@ const computeLineData = (data) => {
   const val = data[0].value;
   const keys = Object.keys(val);
   const p = palette("tol", keys.length).map((hex) => "#" + hex);
-  console.log(p);
   const datasets = keys.map((key, index) => {
     const d = data.map(({ time, value }) => {
       return {
@@ -182,13 +205,15 @@ function App() {
       <h1>Burrow TVL for the last week</h1>
       <div className="container">
         <div className="row">
-          {progress && <h2>{progress}</h2>}
           {data && (
             <div>
-              <div>
-                <Line data={computeLineData(data)} options={LineOptions} />
-              </div>
-              <h2>Raw data</h2>
+              <Line data={computeLineData(data)} options={LineOptions} />
+            </div>
+          )}
+          {progress && <h2 className="text-muted">Progress: {progress}</h2>}
+          {data && (
+            <div>
+              <h3>Raw data</h3>
               <div>
                 <pre>{JSON.stringify(data, null, 2)}</pre>
               </div>
