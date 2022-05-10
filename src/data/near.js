@@ -100,6 +100,14 @@ async function _initNear() {
     );
   };
 
+  _near.archivalAccountState = async (blockId, accountId) => {
+    return await _near.nearArchivalConnection.provider.query({
+      request_type: "view_account",
+      account_id: accountId,
+      block_id: blockId,
+    });
+  };
+
   _near.viewCall = async (contractId, methodName, args) => {
     args = args || {};
     const result = await nearConnection.connection.provider.query({

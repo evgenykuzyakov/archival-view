@@ -7,7 +7,7 @@ import { Line } from "react-chartjs-2";
 import { useNear } from "./data/near";
 import { PromisePool } from "@supercharge/promise-pool";
 import "chart.js/auto";
-import { computeValueForBlochHeight } from "./fetchers/burrowTvl";
+import { computeValueForBlochHeight, Title } from "./fetchers/usnStats";
 import palette from "google-palette";
 
 const NumSplits = 7;
@@ -74,8 +74,9 @@ async function fetchDataPoint(near, blockHeight) {
   return {
     time,
     blockHeight,
-    value: await computeValueForBlochHeight((...args) =>
-      near.archivalViewCall(blockHeight, ...args)
+    value: await computeValueForBlochHeight(
+      (...args) => near.archivalViewCall(blockHeight, ...args),
+      (...args) => near.archivalAccountState(blockHeight, ...args)
     ),
   };
 }
@@ -191,6 +192,10 @@ function App() {
   const [data, setData] = useState(null);
   const [progress, setProgress] = useState(null);
 
+  useEffect(() => {
+    document.title = Title;
+  }, []);
+
   const near = useNear();
   useEffect(() => {
     if (!near) {
@@ -202,7 +207,7 @@ function App() {
 
   return (
     <div>
-      <h1>Burrow TVL for the last week</h1>
+      <h1>{Title}</h1>
       <div className="container">
         <div className="row">
           {data && (
