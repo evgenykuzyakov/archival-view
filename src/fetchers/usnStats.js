@@ -12,6 +12,7 @@ const UsnStablePoolId = 3020;
 const UsnContractId = "usn";
 const OracleContractId = "priceoracle.near";
 const RefFinanceContractId = "v2.ref-finance.near";
+const OneNear = Big(10).pow(24);
 const OneUsn = Big(10).pow(18);
 const expectedUsnPrice = Big(1).div(OneUsn);
 
@@ -81,5 +82,6 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
     "NEAR balance in USD": pricedOwnedNear.toFixed(2),
     "USDT balance in USD": pricedOwnedUsdt.toFixed(2),
     "USN balance in USD": pricedOwnedUsn.toFixed(2),
+    "NEAR balance": ownedNear.div(OneNear).toFixed(2),
   };
 }
