@@ -7,14 +7,15 @@ import { Line } from "react-chartjs-2";
 import { useNear } from "./data/near";
 import { PromisePool } from "@supercharge/promise-pool";
 import "chart.js/auto";
-import { computeValueForBlochHeight, Title } from "./fetchers/usnStats";
+import { computeValueForBlochHeight, Title } from "./fetchers/refNear";
 import palette from "google-palette";
 
-const NumSplits = 7;
+const NumSplits = 8;
 const OneDay = 24 * 60 * 60 * 1000;
 const CloseEnoughTimeDiff = 60 * 1000;
 
-const startBlockTime = new Date(new Date().getTime() - OneDay * 7);
+const NumDays = 28;
+const startBlockTime = new Date(new Date().getTime() - OneDay * NumDays);
 const OptimisticMsPerBlock = 900;
 
 const LineOptions = {
