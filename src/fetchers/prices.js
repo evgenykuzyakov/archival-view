@@ -15,11 +15,14 @@ const TokenName = {
   "wrap.near": "wNEAR",
   "meta-pool.near": "STNEAR",
   usn: "USN",
+  "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near": "AURORA",
 };
 
 export async function computeValueForBlochHeight(viewCall) {
   const prices = keysToCamel(
-    await viewCall(OracleContractId, "get_price_data")
+    await viewCall(OracleContractId, "get_price_data", {
+      asset_ids: Object.keys(TokenName),
+    })
   );
 
   return prices.prices.reduce((acc, { assetId, price }) => {
