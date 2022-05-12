@@ -8,6 +8,7 @@ const WNearContractId = "wrap.near";
 const UsdtContractId =
   "dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near";
 const UsnStablePoolId = 3020;
+const DaoAccountId = "decentralbank.sputnik-dao.near";
 
 const UsnContractId = "usn";
 const OracleContractId = "priceoracle.near";
@@ -18,9 +19,42 @@ const expectedUsnPrice = Big(1).div(OneUsn);
 
 export async function computeValueForBlochHeight(viewCall, accountState) {
   const account = keysToCamel(await accountState(UsnContractId));
+  const nearBalance = Big(account.amount);
+
+  const daoAccount = keysToCamel(await accountState(DaoAccountId));
+  const daoNearBalance = Big(daoAccount.amount);
+
+  const usdtBalance = Big(
+    await viewCall(UsdtContractId, "ft_balance_of", {
+      account_id: UsnContractId,
+    })
+  );
+
+  const usdtDaoBalance = Big(
+    await viewCall(UsdtContractId, "ft_balance_of", {
+      account_id: DaoAccountId,
+    })
+  );
+
+  const wNearBalance = Big(
+    await viewCall(WNearContractId, "ft_balance_of", {
+      account_id: UsnContractId,
+    })
+  );
+
+  const wNearDaoBalance = Big(
+    await viewCall(WNearContractId, "ft_balance_of", {
+      account_id: DaoAccountId,
+    })
+  );
+
+  const usnDaoBalance = Big(
+    await viewCall(UsnContractId, "ft_balance_of", {
+      account_id: DaoAccountId,
+    })
+  );
 
   const totalSupply = Big(await viewCall(UsnContractId, "ft_total_supply"));
-  const nearBalance = Big(account.amount);
 
   const refBalances = await viewCall(RefFinanceContractId, "get_deposits", {
     account_id: UsnContractId,
@@ -50,7 +84,9 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
     .round(0, 0)
     .add(Big(refBalances[UsnContractId]));
 
-  const ownedNear = nearBalance.add(Big(refBalances[WNearContractId]));
+  const ownedNear = nearBalance
+    .add(Big(refBalances[WNearContractId]))
+    .add(wNearBalance);
 
   const prices = keysToCamel(
     await viewCall(OracleContractId, "get_price_data", {
@@ -67,14 +103,21 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
     return acc;
   }, {});
 
-  const pricedOwnedNear = ownedNear.mul(priceMul[WNearContractId]);
-  const pricedOwnedUsdt = ownedUsdtAmount.mul(priceMul[UsdtContractId]);
-  const pricedOwnedUsn = ownedUsnAmount.mul(
+  const totalNear = ownedNear.add(wNearDaoBalance).add(daoNearBalance);
+  const totalUsdt = ownedUsdtAmount.add(usdtDaoBalance).add(usdtBalance);
+  const totalUsn = ownedUsnAmount.add(usnDaoBalance);
+
+  const pricedOwnedNear = totalNear.mul(priceMul[WNearContractId]);
+  const pricedOwnedUsdt = totalUsdt.mul(priceMul[UsdtContractId]);
+  const pricedOwnedUsn = totalUsn.mul(
     priceMul[UsnContractId] || expectedUsnPrice
   );
 
+  const publicUsn = totalSupply.sub(totalUsn);
+
   return {
     "USN total supply": totalSupply.div(OneUsn).toFixed(2),
+    "Public USN supply": publicUsn.div(OneUsn).toFixed(2),
     "Treasury balance in USD": pricedOwnedNear
       .add(pricedOwnedUsdt)
       .add(pricedOwnedUsn)
@@ -82,6 +125,11 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
     "NEAR balance in USD": pricedOwnedNear.toFixed(2),
     "USDT balance in USD": pricedOwnedUsdt.toFixed(2),
     "USN balance in USD": pricedOwnedUsn.toFixed(2),
-    "NEAR balance": ownedNear.div(OneNear).toFixed(2),
+    // "NEAR balance": ownedNear.div(OneNear).toFixed(2),
+    // "DAO NEAR balance": daoNearBalance
+    //   .add(wNearDaoBalance)
+    //   .div(OneNear)
+    //   .toFixed(2),
+    "Total NEAR balance": totalNear.div(OneNear).toFixed(2),
   };
 }
