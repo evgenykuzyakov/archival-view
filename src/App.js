@@ -10,11 +10,10 @@ import "chart.js/auto";
 import { computeValueForBlochHeight } from "./fetchers/burrowTvl";
 import palette from "google-palette";
 
-const NumSplits = 7;
-const OneDay = 24 * 60 * 60 * 1000;
+const NumSplits = 8;
 const CloseEnoughTimeDiff = 60 * 1000;
 
-const startBlockTime = new Date(new Date().getTime() - OneDay * 7);
+const startBlockTime = new Date("2022-03-28");
 const OptimisticMsPerBlock = 900;
 
 const YAxis = {
@@ -223,7 +222,7 @@ function App() {
 
   return (
     <div>
-      <h1>Burrow TVL for the last week</h1>
+      <h1>Burrow TVL</h1>
       <div className="container">
         <div className="row">
           <label>Y-axis scale:</label>
