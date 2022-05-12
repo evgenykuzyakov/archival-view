@@ -7,7 +7,7 @@ import { Line } from "react-chartjs-2";
 import { useNear } from "./data/near";
 import { PromisePool } from "@supercharge/promise-pool";
 import "chart.js/auto";
-import { computeValueForBlochHeight, Title } from "./fetchers/usnStats";
+import { computeValueForBlochHeight, Title } from "./fetchers/prices";
 import palette from "google-palette";
 
 const NumSplits = 7;
