@@ -24,26 +24,32 @@ export async function computeValueForBlochHeight(viewCall) {
     }
     return acc;
   }, {});
-  const totalDeposit = assets
-    .reduce((sum, [assetId, asset]) => {
-      const value = Big(asset.supplied.balance)
-        .add(Big(asset.reserved))
-        .div(Big(10).pow(asset.config.extraDecimals));
-      return sum.add(value.mul(priceMul[assetId]));
-    }, Big(0))
-    .toFixed(2);
 
-  const totalBorrowed = assets
-    .reduce((sum, [assetId, asset]) => {
-      const value = Big(asset.borrowed.balance).div(
-        Big(10).pow(asset.config.extraDecimals)
-      );
-      return sum.add(value.mul(priceMul[assetId]));
-    }, Big(0))
-    .toFixed(2);
+  const totalReserves = assets.reduce((sum, [assetId, asset]) => {
+    const value = Big(asset.reserved).div(
+      Big(10).pow(asset.config.extraDecimals)
+    );
+    return priceMul[assetId] ? sum?.add(value.mul(priceMul[assetId])) : null;
+  }, Big(0));
+
+  const totalDeposit = assets.reduce((sum, [assetId, asset]) => {
+    const value = Big(asset.supplied.balance)
+      .add(Big(asset.reserved))
+      .div(Big(10).pow(asset.config.extraDecimals));
+    return priceMul[assetId] ? sum?.add(value.mul(priceMul[assetId])) : null;
+  }, Big(0));
+
+  const totalBorrowed = assets.reduce((sum, [assetId, asset]) => {
+    const value = Big(asset.borrowed.balance).div(
+      Big(10).pow(asset.config.extraDecimals)
+    );
+    return priceMul[assetId] ? sum?.add(value.mul(priceMul[assetId])) : null;
+  }, Big(0));
 
   return {
-    "Total Deposited Value": totalDeposit,
-    "Total Borrowed Value": totalBorrowed,
+    Deposited: totalDeposit?.toFixed(2),
+    Borrowed: totalBorrowed?.toFixed(2),
+    Reserves: totalReserves?.toFixed(2),
+    "Non-borrowed TVL": totalDeposit?.sub(totalBorrowed)?.toFixed(2),
   };
 }
