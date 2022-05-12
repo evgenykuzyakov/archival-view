@@ -7,12 +7,11 @@ export const TGas = Big(10).pow(12);
 export const StorageCostPerByte = Big(10).pow(19);
 // const isLocalhost = window.location.hostname === "localhost";
 
-export const IsMainnet = true;
 export const MainNearConfig = {
-  networkId: "mainnet",
-  nodeUrl: "https://rpc.mainnet.near.org",
-  archivalNodeUrl: "https://rpc.mainnet.internal.near.org",
-  walletUrl: "https://wallet.near.org",
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+  archivalNodeUrl: "https://rpc.testnet.internal.near.org",
+  walletUrl: "https://wallet.testnet.near.org",
   storageCostPerByte: StorageCostPerByte,
   wrapNearAccountId: "wrap.near",
   refContractAccountId: "v2.ref-finance.near",
