@@ -1,7 +1,7 @@
 import "./App.scss";
 import "error-polyfill";
 import "bootstrap/dist/js/bootstrap.bundle";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "chartjs-adapter-moment";
 import { Line } from "react-chartjs-2";
 import { useNear } from "./data/near";
@@ -15,6 +15,12 @@ const CloseEnoughTimeDiff = 60 * 1000;
 
 const startBlockTime = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 const OptimisticMsPerBlock = 900;
+
+const YAxis = {
+  Default: "Default",
+  BeginAtZero: "BeginAtZero",
+  LogScale: "LogScale",
+};
 
 const LineOptions = {
   animation: false,
@@ -32,7 +38,6 @@ const LineOptions = {
       },
     },
     yAxis: {
-      min: 0,
       ticks: {
         beginAtZero: true,
       },
@@ -189,6 +194,8 @@ const computeLineData = (data) => {
 function App() {
   const [data, setData] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [yAxis, setYAxis] = useState(YAxis.Default);
+  const [lineOptions, setLineOptions] = useState(LineOptions);
 
   const near = useNear();
   useEffect(() => {
@@ -199,14 +206,75 @@ function App() {
     fetchData(near, setProgress, setData).then(() => setProgress(null));
   }, [near]);
 
+  useEffect(() => {
+    const lineOptions = JSON.parse(JSON.stringify(LineOptions));
+    if (yAxis === YAxis.BeginAtZero) {
+      lineOptions.scales.yAxis.min = 0;
+    } else if (yAxis === YAxis.LogScale) {
+      lineOptions.scales.yAxis.type = "logarithmic";
+    }
+    setLineOptions(lineOptions);
+  }, [yAxis]);
+
+  const yAxisOnChange = useCallback((e) => {
+    setYAxis(e.target.value);
+  }, []);
+
   return (
     <div>
       <h1>Burrow TVL (recent day)</h1>
       <div className="container">
         <div className="row">
+          <label>Y-axis scale:</label>
+          <div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="yAxisScaleOptions"
+                id="yAxisRadio1"
+                checked={yAxis === YAxis.Default}
+                onChange={yAxisOnChange}
+                value={YAxis.Default}
+              />
+              <label className="form-check-label" htmlFor="yAxisRadio1">
+                Default
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="yAxisScaleOptions"
+                id="yAxisRadio2"
+                checked={yAxis === YAxis.BeginAtZero}
+                onChange={yAxisOnChange}
+                value={YAxis.BeginAtZero}
+              />
+              <label className="form-check-label" htmlFor="yAxisRadio2">
+                Begin at zero
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="yAxisScaleOptions"
+                id="yAxisRadio3"
+                checked={yAxis === YAxis.LogScale}
+                onChange={yAxisOnChange}
+                value={YAxis.LogScale}
+              />
+              <label className="form-check-label" htmlFor="yAxisRadio3">
+                Log scale
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="row">
           {data && (
             <div>
-              <Line data={computeLineData(data)} options={LineOptions} />
+              <Line data={computeLineData(data)} options={lineOptions} />
             </div>
           )}
           {progress && <h2 className="text-muted">Progress: {progress}</h2>}
