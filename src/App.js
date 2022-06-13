@@ -13,7 +13,7 @@ import palette from "google-palette";
 const NumSplits = 8;
 const CloseEnoughTimeDiff = 60 * 1000;
 
-const startBlockTime = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
+const startBlockTime = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 const OptimisticMsPerBlock = 900;
 
 const YAxis = {
