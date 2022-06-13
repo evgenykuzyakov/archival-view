@@ -20,11 +20,23 @@ const YAxis = {
   Default: "Default",
   BeginAtZero: "BeginAtZero",
   LogScale: "LogScale",
+  Stacked: "Stacked",
+};
+
+const DisplayType = {
+  Net: "Net",
+  Deposits: "Deposits",
+  Borrowed: "Borrowed",
 };
 
 const LineOptions = {
   animation: false,
   responsive: true,
+  interaction: {
+    mode: "nearest",
+    axis: "x",
+    intersect: false,
+  },
   scales: {
     xAxis: {
       type: "time",
@@ -169,23 +181,36 @@ async function fetchData(near, setProgress, setData) {
   }
 }
 
-const computeLineData = (data) => {
-  const val = data[0].value;
+const computeLineData = (data, inUsd, displayType, stacked) => {
+  const val = data[data.length - 1].value;
   const keys = Object.keys(val);
   const p = palette("tol", keys.length).map((hex) => "#" + hex);
-  const datasets = keys.map((key, index) => {
+  let index = 0;
+  const datasets = keys.map((key) => {
+    const label = key;
     const d = data.map(({ time, value }) => {
+      const v = value[key];
+      const deposit = inUsd ? v?.depositUsd : v?.deposit;
+      const borrow = inUsd ? v?.borrowUsd : v?.borrow;
+      const y =
+        displayType === DisplayType.Net
+          ? deposit?.sub(borrow)
+          : displayType === DisplayType.Deposits
+          ? deposit
+          : borrow;
       return {
         x: new Date(time),
-        y: value[key],
+        y: inUsd ? y?.toFixed(2) : y?.toFixed(6),
       };
     });
     return {
       data: d,
-      label: key,
-      backgroundColor: p[index],
+      label,
+      backgroundColor: p[index++],
+      fill: stacked,
     };
   });
+
   return {
     datasets,
   };
@@ -194,8 +219,10 @@ const computeLineData = (data) => {
 function App() {
   const [data, setData] = useState(null);
   const [progress, setProgress] = useState(null);
-  const [yAxis, setYAxis] = useState(YAxis.Default);
+  const [yAxis, setYAxis] = useState(YAxis.Stacked);
   const [lineOptions, setLineOptions] = useState(LineOptions);
+  const [inUsd, setInUsd] = useState(true);
+  const [displayType, setDisplayType] = useState(DisplayType.Net);
 
   const near = useNear();
   useEffect(() => {
@@ -212,12 +239,18 @@ function App() {
       lineOptions.scales.yAxis.min = 0;
     } else if (yAxis === YAxis.LogScale) {
       lineOptions.scales.yAxis.type = "logarithmic";
+    } else if (yAxis === YAxis.Stacked) {
+      lineOptions.scales.yAxis.stacked = true;
     }
     setLineOptions(lineOptions);
   }, [yAxis]);
 
   const yAxisOnChange = useCallback((e) => {
     setYAxis(e.target.value);
+  }, []);
+
+  const displayTypeOnChange = useCallback((e) => {
+    setDisplayType(e.target.value);
   }, []);
 
   return (
@@ -269,12 +302,94 @@ function App() {
                 Log scale
               </label>
             </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="yAxisScaleOptions"
+                id="yAxisRadio4"
+                checked={yAxis === YAxis.Stacked}
+                onChange={yAxisOnChange}
+                value={YAxis.Stacked}
+              />
+              <label className="form-check-label" htmlFor="yAxisRadio4">
+                Stacked
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="row">
+          <label>Display options:</label>
+          <div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                name="showUsdOptions"
+                id="showUsdOptions"
+                checked={inUsd}
+                onChange={(e) => setInUsd(e.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="showUsdOptions">
+                Values in USD
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="showNetTvlOptions"
+                id="showNetTvlOptions"
+                checked={displayType === DisplayType.Net}
+                onChange={displayTypeOnChange}
+                value={DisplayType.Net}
+              />
+              <label className="form-check-label" htmlFor="showNetTvlOptions">
+                Net Value
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="showDepositsOptions"
+                id="showDepositsOptions"
+                checked={displayType === DisplayType.Deposits}
+                onChange={displayTypeOnChange}
+                value={DisplayType.Deposits}
+              />
+              <label className="form-check-label" htmlFor="showDepositsOptions">
+                Show Deposits
+              </label>
+            </div>
+            <div className="form-check form-check-inline">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="showBorrowed"
+                id="showBorrowed"
+                checked={displayType === DisplayType.Borrowed}
+                onChange={displayTypeOnChange}
+                value={DisplayType.Borrowed}
+              />
+              <label className="form-check-label" htmlFor="showBorrowed">
+                Show Borrowed
+              </label>
+            </div>
           </div>
         </div>
         <div className="row">
           {data && (
             <div>
-              <Line data={computeLineData(data)} options={lineOptions} />
+              <Line
+                data={computeLineData(
+                  data,
+                  inUsd,
+                  displayType,
+                  yAxis === YAxis.Stacked
+                )}
+                options={lineOptions}
+              />
             </div>
           )}
           {progress && <h2 className="text-muted">Progress: {progress}</h2>}
