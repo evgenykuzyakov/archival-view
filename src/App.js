@@ -13,7 +13,7 @@ import palette from "google-palette";
 const NumSplits = 8;
 const CloseEnoughTimeDiff = 60 * 1000;
 
-const startBlockTime = new Date("2022-03-28");
+const startBlockTime = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
 const OptimisticMsPerBlock = 900;
 
 const YAxis = {
@@ -255,7 +255,7 @@ function App() {
 
   return (
     <div>
-      <h1>Burrow TVL</h1>
+      <h1>Burrow TVL (week)</h1>
       <div className="container">
         <div className="row">
           <label>Y-axis scale:</label>
