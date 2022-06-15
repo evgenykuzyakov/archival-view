@@ -116,20 +116,23 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
   const publicUsn = totalSupply.sub(totalUsn);
 
   return {
-    "USN total supply": totalSupply.div(OneUsn).toFixed(2),
-    "Public USN supply": publicUsn.div(OneUsn).toFixed(2),
-    "Treasury balance in USD": pricedOwnedNear
+    "Total USN": totalSupply.div(OneUsn).toFixed(2),
+    "Public USN": publicUsn.div(OneUsn).toFixed(2),
+    "Collateral USD (without USN)": pricedOwnedNear
+      .add(pricedOwnedUsdt)
+      .toFixed(2),
+    "Treasury USD": pricedOwnedNear
       .add(pricedOwnedUsdt)
       .add(pricedOwnedUsn)
       .toFixed(2),
-    "NEAR balance in USD": pricedOwnedNear.toFixed(2),
-    "USDT balance in USD": pricedOwnedUsdt.toFixed(2),
-    "USN balance in USD": pricedOwnedUsn.toFixed(2),
+    "NEAR owned (USD)": pricedOwnedNear.toFixed(2),
+    "USDT owned (USD)": pricedOwnedUsdt.toFixed(2),
+    "USN owned (USD)": pricedOwnedUsn.toFixed(2),
     // "NEAR balance": ownedNear.div(OneNear).toFixed(2),
     // "DAO NEAR balance": daoNearBalance
     //   .add(wNearDaoBalance)
     //   .div(OneNear)
     //   .toFixed(2),
-    "Total NEAR balance": totalNear.div(OneNear).toFixed(2),
+    "NEAR owned (NEAR)": totalNear.div(OneNear).toFixed(2),
   };
 }
