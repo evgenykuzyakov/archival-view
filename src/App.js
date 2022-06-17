@@ -26,6 +26,11 @@ const YAxis = {
 const LineOptions = {
   animation: false,
   responsive: true,
+  interaction: {
+    mode: "nearest",
+    axis: "x",
+    intersect: false,
+  },
   scales: {
     xAxis: {
       type: "time",
