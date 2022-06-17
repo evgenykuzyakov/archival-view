@@ -15,7 +15,9 @@ const OracleContractId = "priceoracle.near";
 const RefFinanceContractId = "v2.ref-finance.near";
 const OneNear = Big(10).pow(24);
 const OneUsn = Big(10).pow(18);
+const OneUsdt = Big(10).pow(6);
 const expectedUsnPrice = Big(1).div(OneUsn);
+const expectedUsdtPrice = Big(1).div(OneUsdt);
 
 export async function computeValueForBlochHeight(viewCall, accountState) {
   const account = keysToCamel(await accountState(UsnContractId));
@@ -77,12 +79,12 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
   const ownedUsnAmount = poolUsnAmount
     .mul(percent)
     .round(0, 0)
-    .add(Big(refBalances[UsdtContractId]));
+    .add(Big(refBalances[UsnContractId]));
   const poolUsdtAmount = Big(refStablePool.amounts[1]);
   const ownedUsdtAmount = poolUsdtAmount
     .mul(percent)
     .round(0, 0)
-    .add(Big(refBalances[UsnContractId]));
+    .add(Big(refBalances[UsdtContractId]));
 
   const ownedNear = nearBalance
     .add(Big(refBalances[WNearContractId]))
@@ -108,7 +110,9 @@ export async function computeValueForBlochHeight(viewCall, accountState) {
   const totalUsn = ownedUsnAmount.add(usnDaoBalance);
 
   const pricedOwnedNear = totalNear.mul(priceMul[WNearContractId]);
-  const pricedOwnedUsdt = totalUsdt.mul(priceMul[UsdtContractId]);
+  const pricedOwnedUsdt = totalUsdt.mul(
+    priceMul[UsdtContractId] || expectedUsdtPrice
+  );
   const pricedOwnedUsn = totalUsn.mul(
     priceMul[UsnContractId] || expectedUsnPrice
   );
