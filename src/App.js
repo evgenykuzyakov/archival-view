@@ -184,7 +184,7 @@ async function fetchData(near, setProgress, setData) {
 const computeLineData = (data, inUsd, displayType, stacked) => {
   const val = data[data.length - 1].value;
   const keys = Object.keys(val);
-  const p = palette("tol", keys.length).map((hex) => "#" + hex);
+  const p = palette("tol-sq", keys.length).map((hex) => "#" + hex);
   let index = 0;
   const datasets = keys.map((key) => {
     const label = key;

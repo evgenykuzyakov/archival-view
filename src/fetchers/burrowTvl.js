@@ -19,6 +19,7 @@ const TokenName = {
   "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near": "AURORA",
   "token.burrow.near": "BRRR",
   "meta-token.near": "META",
+  "4691937a7508860f876c9c0a2a617e7d9e945d4b.factory.bridge.near": "WOO",
 };
 
 const Decimals = {
@@ -34,6 +35,7 @@ const Decimals = {
   "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near": 18,
   "token.burrow.near": 18,
   "meta-token.near": 24,
+  "4691937a7508860f876c9c0a2a617e7d9e945d4b.factory.bridge.near": 18,
 };
 
 export async function computeValueForBlochHeight(viewCall) {
